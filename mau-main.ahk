@@ -11,27 +11,38 @@ passwords := A_ScriptDir . "\passwords.txt"
 output := A_ScriptDir . "\output.txt"
 
 FormatTime, TimeString
-FileDelete, %output%
+; Delete previous output file
+if(FileExist(output))
+    FileDelete, %output%
 FileAppend, `n%TimeString% `n , %output%
-; MsgBox, %file%
 
 ; Read the list of passwords
 Loop, read, %passwords%
 {
     password = %A_LoopReadLine%
+
+    ; Command needs double quotes when using ComSpec, t - test the archive, p - password
+    ; Standard Output is redirected to null, Standard Error is redirected to the output file
     command = ""C:\Program Files\WinRAR\unrar.exe" "t" "-p%password%" "%file%" >nul 2>>"%output%""
     
+    ; Log the password used
     FileAppend % "Trying: " . password . " ", %output%
 
+    ; Run the command
     RunWait %A_ComSpec% /c %command% , , Hide
-    returnedError := ErrorLevel
-    ; result := RunWaitOne(command)
-    ; FileAppend, %result%, %output%
-    ; ExitApp, 
-    FileAppend % " ErrorLevel: " . ErrorLevel . " `n", %output%
-    if (returnedError == 0) {
-        FileAppend % " `nPassword Found: " . password . " `n", %output%
 
+    ; Assign the error level to a variable
+    returnedError := ErrorLevel
+
+    ; Log the error level
+    FileAppend % " ErrorLevel: " . ErrorLevel . " `n", %output%
+
+    ; If the error level is 0, the password was correct
+    if (returnedError == 0) {
+        ; Log the password found
+        FileAppend % " `nPassword Found: " . password . " `n", %output%
+        
+        ; Run the command to open the file, without having to enter the password
         command = "C:\Program Files\WinRAR\winrar.exe" "-p%password%" "%file%"
         Run %command% 
                 
